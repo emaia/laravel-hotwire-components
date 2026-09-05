@@ -9,7 +9,7 @@
                 <x-hw::breadcrumb.item>
                     @if ($item['type'] === 'ellipsis')
                         <x-hw::breadcrumb.ellipsis :label="$item['label']" />
-                    @elseif ($item['current'] || $item['href'] === null)
+                    @elseif ($item['current'])
                         <x-hw::breadcrumb.page>{{ $item['label'] }}</x-hw::breadcrumb.page>
                     @else
                         <x-hw::breadcrumb.link :href="$item['href']" :frame="$item['frame']">{{ $item['label'] }}</x-hw::breadcrumb.link>

@@ -11,7 +11,7 @@ use Stringable;
 class Breadcrumb extends Component
 {
     /**
-     * @param  array<int, array{label?: string|int|Stringable|Htmlable, href?: string|Stringable|null, current?: bool, type?: string, frame?: string|object|bool|null}>  $items
+     * @param  array<int, array{label: string|int|Stringable|Htmlable, href?: string|Stringable|null, current?: bool, type?: 'item', frame?: string|object|bool|null}|array{type: 'ellipsis', label?: string|int|Stringable}>  $items
      */
     public function __construct(
         public string $label = 'Breadcrumb',
@@ -38,7 +38,7 @@ class Breadcrumb extends Component
     }
 
     /**
-     * @return array<int, array{label: mixed, href: string|null, current: bool, type: string, frame: string|null}>
+     * @return array<int, array{label: string|int|Stringable|Htmlable, href: string|null, current: bool, type: 'item'|'ellipsis', frame: string|null}>
      */
     public function normalizedItems(): array
     {
@@ -48,13 +48,14 @@ class Breadcrumb extends Component
         return array_map(function (array $item, int $index) use ($lastIndex): array {
             $type = $item['type'] ?? 'item';
             $href = $this->normalizeHref($item);
+            $current = $this->isCurrentItem($item, $index, $lastIndex, $href, $type);
 
             return [
                 'label' => $type === 'ellipsis'
-                    ? ($item['label'] ?? $this->ellipsisLabel)
+                    ? (string) ($item['label'] ?? $this->ellipsisLabel)
                     : $item['label'],
                 'href' => $href,
-                'current' => (bool) ($item['current'] ?? ($index === $lastIndex && $href === null && $type !== 'ellipsis')),
+                'current' => $current,
                 'type' => $type,
                 'frame' => array_key_exists('frame', $item)
                     ? FrameTarget::normalize($item['frame'])
@@ -67,10 +68,18 @@ class Breadcrumb extends Component
     private function guardItems(array $items): void
     {
         $pages = 0;
+        $items = array_values($items);
+        $lastIndex = array_key_last($items);
 
-        foreach (array_values($items) as $item) {
+        foreach ($items as $index => $item) {
             if (! is_array($item)) {
                 throw new InvalidArgumentException('Breadcrumb items must be item descriptor arrays.');
+            }
+
+            $unsupportedKeys = array_values(array_diff(array_keys($item), ['label', 'href', 'current', 'type', 'frame']));
+
+            if ($unsupportedKeys !== []) {
+                throw new InvalidArgumentException(sprintf('Breadcrumb item contains unsupported key [%s].', $unsupportedKeys[0]));
             }
 
             $type = $item['type'] ?? 'item';
@@ -79,12 +88,28 @@ class Breadcrumb extends Component
                 throw new InvalidArgumentException('Breadcrumb item [type] must be item or ellipsis.');
             }
 
+            if ($type === 'ellipsis') {
+                foreach (['href', 'current', 'frame'] as $unsupportedKey) {
+                    if (array_key_exists($unsupportedKey, $item)) {
+                        throw new InvalidArgumentException(sprintf('Breadcrumb ellipsis items do not support [%s].', $unsupportedKey));
+                    }
+                }
+            }
+
             if ($type !== 'ellipsis' && ! array_key_exists('label', $item)) {
                 throw new InvalidArgumentException('Breadcrumb items must define [label].');
             }
 
             if (array_key_exists('label', $item) && ! $this->isItemContent($item['label'])) {
                 throw new InvalidArgumentException('Breadcrumb item [label] must be a string, integer, Stringable or Htmlable.');
+            }
+
+            if ($type === 'ellipsis'
+                && array_key_exists('label', $item)
+                && ! is_string($item['label'])
+                && ! is_int($item['label'])
+                && ! $item['label'] instanceof Stringable) {
+                throw new InvalidArgumentException('Breadcrumb ellipsis [label] must be a string, integer or Stringable.');
             }
 
             if (array_key_exists('href', $item)
@@ -98,7 +123,25 @@ class Breadcrumb extends Component
                 throw new InvalidArgumentException('Breadcrumb item [current] must be a boolean.');
             }
 
-            if ($type !== 'ellipsis' && (($item['current'] ?? false) || $this->normalizeHref($item) === null)) {
+            if (array_key_exists('frame', $item)) {
+                if (! is_string($item['frame'])
+                    && ! is_object($item['frame'])
+                    && ! is_bool($item['frame'])
+                    && $item['frame'] !== null) {
+                    throw new InvalidArgumentException('Breadcrumb item [frame] must be a string, object, boolean or null.');
+                }
+
+                FrameTarget::normalize($item['frame']);
+            }
+
+            $href = $this->normalizeHref($item);
+            $current = $this->isCurrentItem($item, $index, $lastIndex, $href, $type);
+
+            if ($type !== 'ellipsis' && $href === null && ! $current) {
+                throw new InvalidArgumentException('Breadcrumb non-current items must define [href].');
+            }
+
+            if ($current) {
                 $pages++;
             }
         }
@@ -114,6 +157,13 @@ class Breadcrumb extends Component
         $href = $item['href'] ?? null;
 
         return $href === null ? null : (string) $href;
+    }
+
+    /** @param  array<string, mixed>  $item */
+    private function isCurrentItem(array $item, int $index, ?int $lastIndex, ?string $href, string $type): bool
+    {
+        return $type !== 'ellipsis'
+            && (bool) ($item['current'] ?? ($index === $lastIndex && $href === null));
     }
 
     private function isItemContent(mixed $content): bool

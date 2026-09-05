@@ -3,6 +3,7 @@
 use Emaia\LaravelHotwire\Components\Breadcrumb;
 use Emaia\LaravelHotwire\Registry\HotwireRegistry;
 use Emaia\LaravelHotwire\Support\ComponentAliases;
+use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Support\HtmlString;
 use Illuminate\Support\Str;
 use Illuminate\View\ViewException;
@@ -182,19 +183,75 @@ it('rejects invalid generated breadcrumb item descriptors', function (array $ite
         [['label' => 'Dashboard', 'current' => 'yes']],
         '[current] must be a boolean',
     ],
+    'invalid frame' => [
+        [['label' => 'Dashboard', 'href' => '/dashboard', 'frame' => []]],
+        '[frame] must be a string, object, boolean or null',
+    ],
     'unknown type' => [
         [['label' => 'More', 'type' => 'elipsis']],
         '[type] must be item or ellipsis',
     ],
-    'more than one current page' => [
+    'unknown key' => [
+        [['label' => 'Dashboard', 'href' => '/dashboard', 'currnet' => true]],
+        'unsupported key [currnet]',
+    ],
+    'ellipsis with href' => [
+        [['type' => 'ellipsis', 'href' => '/projects']],
+        'ellipsis items do not support [href]',
+    ],
+    'ellipsis with current state' => [
+        [['type' => 'ellipsis', 'current' => true]],
+        'ellipsis items do not support [current]',
+    ],
+    'ellipsis with frame' => [
+        [['type' => 'ellipsis', 'frame' => 'content']],
+        'ellipsis items do not support [frame]',
+    ],
+    'non-final item without href' => [
         [
             ['label' => 'Dashboard'],
+            ['label' => 'Projects', 'href' => '/projects'],
+        ],
+        'non-current items must define [href]',
+    ],
+    'href-less item opting out of current' => [
+        [['label' => 'Dashboard', 'current' => false]],
+        'non-current items must define [href]',
+    ],
+    'more than one current page' => [
+        [
+            ['label' => 'Dashboard', 'href' => '/dashboard', 'current' => true],
             ['label' => 'Projects', 'href' => '/projects'],
             ['label' => 'Current'],
         ],
         'resolve more than one current page',
     ],
 ]);
+
+it('rejects non-text Htmlable labels on ellipsis descriptors', function () {
+    $label = new class implements Htmlable
+    {
+        public function toHtml(): string
+        {
+            return '<strong>More pages</strong>';
+        }
+    };
+
+    expect(fn () => new Breadcrumb(items: [['type' => 'ellipsis', 'label' => $label]]))
+        ->toThrow(InvalidArgumentException::class, 'ellipsis [label] must be a string, integer or Stringable');
+});
+
+it('accepts an explicit current page before later links', function () {
+    $items = [
+        ['label' => 'Current', 'current' => true],
+        ['label' => 'Related', 'href' => '/related'],
+    ];
+
+    $html = (string) $this->blade('<x-hw::breadcrumb :items="$items" />', ['items' => $items]);
+
+    expect(substr_count($html, 'aria-current="page"'))->toBe(1)
+        ->and($html)->toContain('href="/related"');
+});
 
 it('accepts integer, Stringable and Htmlable breadcrumb item descriptors', function () {
     $items = [

@@ -16,8 +16,13 @@ incomplete trail. Input that previously produced silently wrong markup raises an
   a second current page;
 - a `type` other than `item` or `ellipsis`, which used to fall through and render as a regular item;
 - a non-boolean `current`;
+- an unsupported descriptor key, including typos in optional keys;
+- `href`, `current` or `frame` on an ellipsis descriptor, where those fields have no effect;
+- a `frame` value outside the types accepted by `FrameTarget`;
+- a non-final item without `href` unless it is explicitly current;
 - more than one item resolving to the current page. An item resolves to the current page when it sets `current` or has
-  no `href`, and a trail has only one. Give the intermediate items an `href` or compose the trail manually.
+  no `href` in the final position, and a trail has only one. Give the intermediate items an `href` or compose the trail
+  manually.
 
 `label` and `href` now accept `Stringable` in addition to their previous types, matching manual composition.
 

@@ -113,22 +113,24 @@ drop `<hw:breadcrumb.ellipsis>` entirely.
 
 | Key       | Required             | Description                                                                                                                    |
 |-----------|----------------------|--------------------------------------------------------------------------------------------------------------------------------|
-| `label`   | yes, except ellipsis | Escaped string, integer or `Stringable`; trusted `Htmlable` renders directly. Ellipsis items fall back to `ellipsisLabel`.      |
-| `href`    | no                   | URL as a string or `Stringable`. Use `route()` explicitly when you need named routes.                                          |
-| `current` | no                   | Boolean forcing the item to render as the current page.                                                                        |
+| `label`   | yes, except ellipsis | Escaped string, integer or `Stringable`; trusted `Htmlable` renders directly on regular items. Ellipsis labels must be textual and fall back to `ellipsisLabel`. |
+| `href`    | no                   | URL for a regular item as a string or `Stringable`. Use `route()` explicitly when you need named routes.                       |
+| `current` | no                   | Boolean forcing a regular item to render as the current page.                                                                   |
 | `type`    | no                   | `item` (default) or `ellipsis`. Any other value is rejected.                                                                   |
-| `frame`   | no                   | Override the root frame target; use `false` to suppress it.                                                                    |
+| `frame`   | no                   | Override the root frame target for a regular item; use `false` to suppress it.                                                 |
 
-Descriptors are validated when the component is constructed, so a missing or mistyped key raises an exception instead of
-rendering a silently incomplete trail.
+Descriptors are validated when the component is constructed, so a missing, unsupported or mistyped key raises an exception
+instead of rendering a silently incomplete trail. Ellipsis descriptors accept only `type` and the optional `label`; link,
+current-page and frame fields would have no effect and are rejected.
 
 The last item without `href` is inferred as the current page. That is positional inference within the array, not URL
 matching: `<hw:navbar>` deliberately refuses to infer `current` at all, because there the state depends on the request
 rather than on an item's place in a list.
 
 A trail has one current page, so at most one item may resolve to one. An item resolves to the current page when it sets
-`current` or has no `href`. When more than one would qualify, give the intermediate items an `href` or compose the trail
-manually.
+`current` or is the final item without `href`. Every other regular item must define `href`; explicitly setting
+`current => false` does not make an href-less item actionable. When more than one item would qualify, give the
+intermediate items an `href` or compose the trail manually.
 
 Automatic URL matching, nested dropdown data and per-item attributes are intentionally left out of v1.
 

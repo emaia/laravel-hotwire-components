@@ -2,6 +2,71 @@
 
 All notable changes to `laravel-hotwire` will be documented in this file.
 
+## 0.77.0 - 2026-09-05
+
+### Declarative components, intentional overlay focus and Tiptap 3
+
+Adds declarative data APIs for common Blade components, makes overlay focus and nesting predictable, upgrades Rich Text to Tiptap 3, and streamlines component-heavy rendering.
+
+#### Declarative item shortcuts
+
+- Add `items` descriptors to Accordion and Navbar and `options` pairs to Toggle Group.
+- Render generated entries before composed slot content, allowing simple data-driven entries and richer custom markup to coexist.
+- Let Accordion descriptors configure disabled, open and icon states, with explicit open state taking precedence and initialization remaining silent.
+
+See [Accordion items](https://github.com/emaia/laravel-hotwire/blob/0.77.0/docs/components/accordion.md#items-api), [Navbar items](https://github.com/emaia/laravel-hotwire/blob/0.77.0/docs/components/navbar.md#items-api), and [Toggle Group options](https://github.com/emaia/laravel-hotwire/blob/0.77.0/docs/components/toggle-group.md#options).
+
+#### Validated Breadcrumb trails
+
+- Validate Breadcrumb item descriptors instead of coercing mistyped or incomplete data into incorrect markup.
+- Render generated trails through the standard Breadcrumb subcomponents for consistent composition and Turbo Frame targeting.
+- Accept `Stringable` labels and links while enforcing one current page and rejecting unsupported fields or mixed `items` and slot composition.
+
+**Upgrade note:** invalid or ambiguous descriptors now raise `InvalidArgumentException`, `items` no longer accepts `null`, and `hasItems()` has been removed.
+
+See [Breadcrumb items](https://github.com/emaia/laravel-hotwire/blob/0.77.0/docs/components/breadcrumb.md#items-api) and the [Breadcrumb upgrade guide](https://github.com/emaia/laravel-hotwire/blob/0.77.0/docs/upgrade.md#breadcrumb-validates-its-item-descriptors).
+
+#### Explicit and resilient overlay focus
+
+- Add `initial-focus="auto|dialog|first-focusable|none"` to Modal, Drawer, Sheet and Alert Dialog.
+- Make `auto` honor eligible autofocus content before focusing the dialog surface, or Cancel for Alert Dialog.
+- Apply initial focus once per opening without stealing focus again after Turbo Frame updates, morph reconnects or nested-overlay handovers.
+- Keep nested focus traps and Escape dismissal ordered while overlays enter, exit or fail to open.
+
+**Upgrade note:** overlays previously focused their first focusable control by default. Use `initial-focus="first-focusable"` to preserve that behavior.
+
+See [Modal behavior](https://github.com/emaia/laravel-hotwire/blob/0.77.0/docs/components/modal.md#behavior), [Alert Dialog behavior](https://github.com/emaia/laravel-hotwire/blob/0.77.0/docs/components/alert-dialog.md#tweaking-behavior), and the [overlay focus upgrade guide](https://github.com/emaia/laravel-hotwire/blob/0.77.0/docs/upgrade.md#overlay-initial-focus-is-explicit).
+
+#### Rich Text on Tiptap 3
+
+- Move the Rich Text editor and toolbar to Tiptap `3.31.3`.
+- Require `@tiptap/pm` and `@tiptap/extensions`, replacing the deprecated standalone Placeholder package.
+- Preserve existing editing and serialization behavior while supporting Tiptap 3 extension kits.
+
+**Upgrade note:** every application `@tiptap/*` package and custom Rich Text extension must move to the same exact Tiptap release.
+
+See the [Rich Text controller](https://github.com/emaia/laravel-hotwire/blob/0.77.0/docs/controllers/rich-text.md), [toolbar extension recipe](https://github.com/emaia/laravel-hotwire/blob/0.77.0/docs/controllers/rich-text-toolbar.md#extending-the-toolbar-table-recipe), and the [Tiptap 3 upgrade guide](https://github.com/emaia/laravel-hotwire/blob/0.77.0/docs/upgrade.md#rich-text-requires-tiptap-3).
+
+#### Faster component-heavy rendering
+
+- Reduce repeated framework work when rendering package Blade components with complete constructor data.
+- Reuse Vite controller and asset manifest lookups within each request.
+- Preserve application-wide component resolvers and Laravel's normal fallback when required constructor data is missing.
+
+**Upgrade note:** class and contextual container bindings for package components no longer participate in ordinary renders where all required props are supplied.
+
+See the [component resolution upgrade guide](https://github.com/emaia/laravel-hotwire/blob/0.77.0/docs/upgrade.md#package-components-resolve-without-the-container).
+
+#### Nova component polish
+
+- Align Rich Text and Multi Select surfaces, focus states and disabled states with Nova's text-control treatment.
+- Keep Modal frame content and full-size layouts consistently scrollable.
+- Apply the inset footer treatment only to a trailing footer and restore primary Sidebar item spacing.
+
+See [Modal footer and scrolling](https://github.com/emaia/laravel-hotwire/blob/0.77.0/docs/components/modal.md#footer-and-scrolling) and [Presets](https://github.com/emaia/laravel-hotwire/blob/0.77.0/docs/presets.md).
+
+**Full Changelog**: https://github.com/emaia/laravel-hotwire/compare/0.76.0...0.77.0
+
 ## 0.76.0 - 2026-09-04
 
 ### Accessible presets, Laravel Boost guidance and Hotwire workflows
@@ -1156,6 +1221,7 @@ Laravel Hotwire now defaults to the `hw` prefix and supports the preferred short
 
 
 
+
 ```
 The configured `hotwire.prefix` remains customizable for apps that want another prefix.
 
@@ -1167,6 +1233,7 @@ Apps can also generate project-specific Stimulus helper metadata with:
 
 ```bash
 php artisan hotwire:ide-json
+
 
 
 
@@ -1407,6 +1474,7 @@ export default class extends CarouselController {
 
 
 
+
 ```
 Brace-aware injection respects an existing `resolve:` block. See [`docs/extending-controllers.md`](docs/extending-controllers.md).
 
@@ -1416,6 +1484,7 @@ Single canonical command for the greenfield case:
 
 ```bash
 php artisan hotwire:install
+
 
 
 
@@ -1614,6 +1683,7 @@ New `<x-hwc::map>` Blade component and `map` Stimulus controller — a Leaflet w
 
 
 
+
 ```
 - Default OpenStreetMap tiles with the required attribution automatically set
 - Inline markers with optional popups, or a `url` returning a GeoJSON `FeatureCollection`
@@ -1637,6 +1707,7 @@ The `chart` controller now supports a `poll` value (milliseconds) — when set w
 
 ```blade
 <x-hwc::chart url="/api/charts/sales" :poll="30_000" height="320px" />
+
 
 
 
@@ -1827,6 +1898,7 @@ Apache ECharts ^6.1.0 wrapper with server-rendered or URL-fetched options, Resiz
 
 
 
+
 ```
 #### Controller features
 
@@ -1893,6 +1965,7 @@ New `conditional-fields` Stimulus controller shows or hides dependent blocks bas
         ...
     </fieldset>
 </form>
+
 
 
 
@@ -2041,6 +2114,7 @@ Recommended path — encodes the rule once on the server, renders `hidden disabl
 
 
 
+
 ```
 #### Edit forms — the `:model` prop
 
@@ -2050,6 +2124,7 @@ Pass the same model your `<x-hwc::input>` / `<x-hwc::select>` / `<x-hwc::textare
 <x-hwc::conditional-field :model="$message" :when="['reason' => 'other']">
     <x-hwc::input name="other_reason" :value="$message->other_reason" />
 </x-hwc::conditional-field>
+
 
 
 
@@ -2195,6 +2270,7 @@ New `disclosure` Stimulus controller — collapsible inline content with proper 
 
 
 
+
 ```
 Two-way `open` value (default `false`), idempotent `toggle` / `open` / `close` actions, and a `disclosure:change` event with `{ open: bool }` for hooking analytics, icon swaps, or chained UI off transitions. The `content` target is required; the `trigger` target is optional and receives `aria-expanded` sync when present.
 
@@ -2208,6 +2284,7 @@ static outlets = ["disclosure"];
 revealHelp() {
     this.disclosureOutlet.open();
 }
+
 
 
 
@@ -2361,6 +2438,7 @@ New `password-visibility` Stimulus controller toggles a password input between h
 
 
 
+
 ```
 `aria-label` is driven by the `show-label` / `hide-label` values (defaults `Show password` / `Hide password`). A `password-visibility:change` event with `{ visible: bool }` fires on every transition so a small companion controller — or another listener — can swap icons. `connect()` always forces `type="password"`: visibility is never persisted across Turbo morphs or Drive navigations.
 
@@ -2373,6 +2451,7 @@ New `autofocus` Stimulus controller focuses the first matching field on `connect
 <form data-controller="autofocus" action="/messages" method="POST">
     <input type="text" name="title" autofocus/>
 </form>
+
 
 
 
@@ -2453,6 +2532,7 @@ New `back-to-top` Stimulus controller toggles `data-visible="true|false"` on its
            data-[visible=true]:opacity-100"
     aria-label="Back to top"
 >↑</button>
+
 
 
 
@@ -2612,6 +2692,7 @@ Single `size` prop replaces the previous `allow-small-width` and `allow-full-wid
 
 
 
+
 ```
 `allow-small-width` and `allow-full-width` are removed. Use `size="auto"` to keep the old "no width constraints" behavior, or `size="50vw"` to keep the old "half viewport" default. The migration table in `docs/components/modal.md` maps every previous combination to the new prop.
 
@@ -2698,6 +2779,7 @@ New `<x-hwc::frame-or-page>` component renders a view as a Turbo Frame payload o
 
 
 
+
 ```
 #### Model-aware frame ids
 
@@ -2707,6 +2789,7 @@ Pass a Model instead of a string; the component calls `dom_id()` to derive the f
 <x-hwc::frame-or-page :frame="$message" layout="layouts.dashboard">
     ...
 </x-hwc::frame-or-page>
+
 
 
 
@@ -2860,12 +2943,14 @@ The `<x-hwc::carousel>` component now supports an opt-in progress bar and slide 
 
 
 
+
 ```
 #### Slide counter
 
 ```blade
 <x-hwc::carousel :counter="true"
                  counter-class="text-sm">
+
 
 
 
@@ -3022,12 +3107,14 @@ export default class extends CarouselController {
 
 
 
+
 ```
 ```blade
 <x-hwc::carousel controller="gallery">
     <div>slide 1</div>
     <div>slide 2</div>
 </x-hwc::carousel>
+
 
 
 
